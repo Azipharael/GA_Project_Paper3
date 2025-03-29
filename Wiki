@@ -1,0 +1,121 @@
+Which paper you are working with
+- Paper 3
+
+Your project plan
+
+-  What is the aim of your project? What question(s) do you want to answer with your
+research?
+
+  What are “dead zones” in the Gulf of Mexico, and on what aspects of them did the authors focus?
+  What different kinds of sequencing data were used for the genome assembly? Why did they use more than one technique?
+  In our lab we will use a subset of the data from the paper. Do you think it will influence the outcome/your results?
+  What is read trimming and why is it useful?
+  What is the first major step? How is metagenome assembly different from eukaryotic genome assembly?
+  What is binning? What steps are involved?
+  What are the steps involved in assigning genomes to various taxonomic units?
+  What are the metabolic functions discovered in the study? How would you do it in practice?
+  Summarizing what steps are involved, what structure of working directory would be practical?
+
+- What type of analyses will you perform in order to answer these questions? And in
+which order? Which softwares will you use? Are there any time bottlenecks? If so,
+can you identify any analyses that will require longer times?
+
+# Preprocessing
+fastqc raw_*.fastq.gz
+scythe -a adapters.fa raw_R1.fastq.gz > trimmed_R1.fq
+sickle pe -f trimmed_R1.fq -r trimmed_R2.fq -t sanger -o clean_R1.fq -p clean_R2.fq -q 30 -l 50
+# Assembly
+idba_ud -r clean_*.fq -o assembly --mink 65 --maxk 105 --step 10
+# Binning
+bwa index assembly/scaffold.fa
+bwa mem assembly/scaffold.fa clean_R1.fq clean_R2.fq | samtools sort -o mapped.bam
+jgi_summarize_bam_contig_depths --outputDepth depth.txt mapped.bam
+metabat2 -i assembly/scaffold.fa -a depth.txt -o bins -t 16
+# QC
+checkm lineage_wf bins/ checkm_out/
+# Phylogeny
+phylosift all --dir phylo bins/bin.1.fa
+raxmlHPC -s phylo/concatenated.aln -n tree -m PROTCATLG -p 12345
+# Annotation
+prokka --outdir bin1_anno --prefix bin1 bins/bin.1.fa
+emapper.py -i bin1_anno/bin1.faa -o bin1_eggnog --cpu 16
+# Activity
+bwa mem bins/bin.1.fa rna_R1.fq rna_R2.fq | samtools sort -o bin1_rna.bam
+featureCounts -a bin1_anno/bin1.gff -o bin1_counts.txt bin1_rna.bam
+
+Based on the appedix:
+- Reads Quality Control - Software: FastQC 15 min
+- DNA assembly - Software: Megahit 6h
+- Binning - Software: Metabat 30 min
+- Assembly evaluation - Software: CheckM/Quast 45 min - 2h
+
+- What is the time frame for your project? Can you define some time checkpoints for
+when you should have finished certain analyses? When do you need to have finished
+running all the softwares so you can start to analyse the data?
+
+DNA Assembley will be the singular defining checkpoint.
+
+- What types of data will you be handling? How much space do you need in order to
+store the data? (You might not know that in advance, but pay attention to this as you
+work and manage your available space!)
+
+  Type of Data
+•	Sequencing Technologies:
+  o	DNA Sequencing: Illumina HiSeq 2000 (short-read, paired-end, 100 bp reads, 180 bp insert size).
+  o	RNA Sequencing (RNA-seq): Illumina HiSeq 2000 (short-read, paired-end, 100 bp reads).
+•	Data Type:
+  o	Metagenomics (DNA): Whole-genome shotgun sequencing of microbial communities.
+  o	Metatranscriptomics (RNA): mRNA sequencing (after rRNA depletion) to assess gene expression.
+
+  Biological Source
+•	Sample Type: Seawater from the northern Gulf of Mexico (nGOM) hypoxic zone.
+•	Collection Method:
+  o	10 liters of seawater per sample, pre-filtered through a 2.7 µm GF/D filter and concentrated on 0.22 µm Sterivex filters.
+  o	Filters were preserved in RNAlater and stored at -20°C until extraction.
+•	Sites Sampled:
+  o	Six stations (D1, D2, D3, E2, E2A, E4) representing hypoxic (low DO) and oxic (normal DO) conditions.
+  o	Samples collected near the oxygen minimum layer (bottom waters, 8–30 m depth).
+
+- How will you organise your data? (see “Project Organization”)
+
+????????
+
+Your goals/hypotheses
+
+A section for each analysis you run (quality control, assembly, RNA mapping, etc.)
+with explanations on methods you are using, the results you got, a short discussion
+about them, etc.
+
+# Preprocessing
+fastqc raw_*.fastq.gz
+scythe -a adapters.fa raw_R1.fastq.gz > trimmed_R1.fq
+sickle pe -f trimmed_R1.fq -r trimmed_R2.fq -t sanger -o clean_R1.fq -p clean_R2.fq -q 30 -l 50
+# Assembly
+idba_ud -r clean_*.fq -o assembly --mink 65 --maxk 105 --step 10
+# Binning
+bwa index assembly/scaffold.fa
+bwa mem assembly/scaffold.fa clean_R1.fq clean_R2.fq | samtools sort -o mapped.bam
+jgi_summarize_bam_contig_depths --outputDepth depth.txt mapped.bam
+metabat2 -i assembly/scaffold.fa -a depth.txt -o bins -t 16
+# QC
+checkm lineage_wf bins/ checkm_out/
+# Phylogeny
+phylosift all --dir phylo bins/bin.1.fa
+raxmlHPC -s phylo/concatenated.aln -n tree -m PROTCATLG -p 12345
+# Annotation
+prokka --outdir bin1_anno --prefix bin1 bins/bin.1.fa
+emapper.py -i bin1_anno/bin1.faa -o bin1_eggnog --cpu 16
+# Activity
+bwa mem bins/bin.1.fa rna_R1.fq rna_R2.fq | samtools sort -o bin1_rna.bam
+featureCounts -a bin1_anno/bin1.gff -o bin1_counts.txt bin1_rna.bam
+
+Based on the appedix:
+- Reads Quality Control - Software: FastQC 15 min
+- DNA assembly - Software: Megahit 6h
+- Binning - Software: Metabat 30 min
+- Assembly evaluation - Software: CheckM/Quast 45 min - 2h
+
+Any general thoughts, discussions, speculation, etc. that you may have about the
+project and your overall results 
+
+Also suggested: A daily log of what you did on each day of work
