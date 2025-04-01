@@ -119,3 +119,7 @@ Any general thoughts, discussions, speculation, etc. that you may have about the
 project and your overall results 
 
 Also suggested: A daily log of what you did on each day of work
+
+INFO FROM THE SEMINAR:
+staging environment is a step between our working environment and the local repository
+see slides as instructions for the github
