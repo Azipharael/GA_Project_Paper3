@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH -A uppmax2025-3-3
 #SBATCH -M snowy
-#SBATCH -p core
+#SBATCH -p core 
 #SBATCH -n 4
 #SBATCH -t 00:30:00
 #SBATCH -J metabat_binning
