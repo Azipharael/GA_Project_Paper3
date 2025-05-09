@@ -1,0 +1,21 @@
+#!/bin/bash -l
+
+#SBATCH -A uppmax2025-3-3
+#SBATCH -M snowy
+#SBATCH -p core
+#SBATCH -n 2
+#SBATCH -t 00:20:00
+#SBATCH -J RNA_trimmed_QC
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user lucas.henriques-faria.9330@student.uu.se
+#SBATCH --output=%x.%j.out
+
+# Load modules
+module load bioinfo-tools
+module load FastQC
+
+# Run FastQC on the specified file
+fastqc /home/luhe9330/GA_Project_Paper3/Scripts/RNA_trimmed/SRR4342137_1_trimmed.fastq.gz -o RNA_trimmed_QC
+fastqc /home/luhe9330/GA_Project_Paper3/Scripts/RNA_trimmed/SRR4342137_2_trimmed.fastq.gz -o RNA_trimmed_QC
+fastqc /home/luhe9330/GA_Project_Paper3/Scripts/RNA_trimmed/SRR4342139_1_trimmed.fastq.gz -o RNA_trimmed_QC
+fastqc /home/luhe9330/GA_Project_Paper3/Scripts/RNA_trimmed/SRR4342139_2_trimmed.fastq.gz -o RNA_trimmed_QC
