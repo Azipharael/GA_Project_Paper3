@@ -1,0 +1,72 @@
+#!/bin/bash -l
+#SBATCH -A uppmax2025-3-3
+#SBATCH -M snowy
+#SBATCH -p core
+#SBATCH -n 4
+#SBATCH -t 06:00:00
+#SBATCH -J htseq_with_cleaning
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=luhe9330@rackham.uppmax.uu.se
+#SBATCH --output=%x.%j.out
+
+# Load modules
+module load bioinfo-tools
+module load htseq/2.0.2
+module load python3/3.12.7
+
+# Define paths
+PROKKA_DIR="/home/luhe9330/GA_Project_Paper3/Scripts/Prokka_output_backup"
+ALIGNMENTS_DIR="/home/luhe9330/GA_Project_Paper3/Scripts/RNA_Bin_Alignments"
+HTSEQ_OUTPUT="/home/luhe9330/GA_Project_Paper3/Scripts/HTSeq_counts"
+
+# Create output directory if it doesn't exist
+mkdir -p "$HTSEQ_OUTPUT"
+
+# Loop through each Prokka bin directory
+for bin_dir in "$PROKKA_DIR"/bin_.*; do
+    bin_name=$(basename "$bin_dir")
+    gff_file="${bin_dir}/${bin_name}.gff"
+    bam_file="${ALIGNMENTS_DIR}/${bin_name}_aligned.sorted.bam"
+    cleaned_gff="${bin_dir}/${bin_name}.cleaned.gff"
+    htseq_output="${HTSEQ_OUTPUT}/${bin_name}_counts.txt"
+
+    echo "Processing $bin_name..."
+
+    # Step 1: Verify GFF file exists
+    if [ ! -f "$gff_file" ]; then
+        echo "  GFF file not found: $gff_file. Skipping $bin_name."
+        continue
+    fi
+
+    # Step 2: Verify BAM file exists
+    if [ ! -f "$bam_file" ]; then
+        echo "  BAM file not found: $bam_file. Skipping $bin_name."
+        continue
+    fi
+
+    # Step 3: Clean the GFF to only include CDS features
+    echo "Cleaning GFF file for $bin_name..."
+    awk '$3 == "CDS" || /^#/' "$gff_file" > "$cleaned_gff"
+
+    # Step 4: Verify cleaned GFF was created
+    if [ ! -s "$cleaned_gff" ]; then
+        echo "  Cleaned GFF file is empty or not created: $cleaned_gff. Skipping $bin_name."
+        continue
+    fi
+
+    # Step 5: Run HTSeq-count
+    echo "Running HTSeq-count for $bin_name..."
+    htseq-count -f bam -r pos -s no -t CDS -i ID "$bam_file" "$cleaned_gff" > "$htseq_output"
+
+    # Step 6: Verify HTSeq output
+    if [ -s "$htseq_output" ]; then
+        echo "  HTSeq-count completed successfully for $bin_name."
+    else
+        echo "  HTSeq-count failed for $bin_name."
+    fi
+
+    echo "Completed $bin_name."
+    echo "---------------------------------"
+done
+
+echo "  All bins processed."
