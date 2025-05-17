@@ -1,0 +1,58 @@
+#!/bin/bash -l
+#SBATCH -A uppmax2025-3-3
+#SBATCH -M snowy
+#SBATCH -p core
+#SBATCH -n 4
+#SBATCH -t 06:00:00
+#SBATCH -J bwa_alignment
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=luhe9330@rackham.uppmax.uu.se
+#SBATCH --output=%x.%j.out
+
+# Load modules
+module load bioinfo-tools
+module load bwa/0.7.18
+module load samtools
+
+# Define variables for RNA data and bin locations
+RNA_DIR="/home/luhe9330/GA_Project_Paper3/Scripts/RNA_trimmed"
+BINS_DIR="/home/luhe9330/GA_Project_Paper3/Scripts/highq_bins"
+ALIGNMENT_DIR="/home/luhe9330/GA_Project_Paper3/Scripts/BWA_TRYOUT"
+
+# Create output directory if it doesn't exist
+mkdir -p $ALIGNMENT_DIR
+
+# Sync RNA files (merge paired-end files) before alignment
+reformat.sh \
+    in1=$RNA_DIR/SRR4342137_1_trimmed.fastq.gz \
+    in2=$RNA_DIR/SRR4342137_2_trimmed.fastq.gz \
+    out1=$ALIGNMENT_DIR/merged_synced_R1.fastq.gz \
+    out2=$ALIGNMENT_DIR/merged_synced_R2.fastq.gz \
+    outsingle=null
+
+reformat.sh \
+    in1=$RNA_DIR/SRR4342139_1_trimmed.fastq.gz \
+    in2=$RNA_DIR/SRR4342139_2_trimmed.fastq.gz \
+    out1=$ALIGNMENT_DIR/merged_synced_R1.fastq.gz \
+    out2=$ALIGNMENT_DIR/merged_synced_R2.fastq.gz \
+    outsingle=null
+
+# Loop through each bin and align RNA reads to each bin
+for BIN in $BINS_DIR/*.fa; do
+    BIN_NAME=$(basename $BIN .fa)
+
+    # Index the bin
+    bwa index $BIN
+
+    # Align RNA reads to bin, sort the output, and convert to BAM
+    bwa mem -t 4 $BIN $ALIGNMENT_DIR/merged_synced_R1.fastq.gz $ALIGNMENT_DIR/merged_synced_R2.fastq.gz | \
+        samtools view -@ 4 -Sb | \
+        samtools sort -@ 4 -o $ALIGNMENT_DIR/${BIN_NAME}_aligned.sorted.bam
+
+    # Index the BAM file
+    samtools index $ALIGNMENT_DIR/${BIN_NAME}_aligned.sorted.bam
+done
+
+# Clean up temporary files to save space
+rm $ALIGNMENT_DIR/merged_synced_R1.fastq.gz
+rm $ALIGNMENT_DIR/merged_synced_R2.fastq.gz
